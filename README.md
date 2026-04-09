@@ -1,4 +1,4 @@
-# EV Range Predictor — B.Tech Final Year Project
+# EV Range Predictor 
 
 A machine learning web application that predicts electric vehicle range
 across **7 driving conditions** from 14 technical specifications.
