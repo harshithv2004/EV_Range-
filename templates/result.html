@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prediction Results — EV Range Predictor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="bg-glow glow-1"></div>
+<div class="bg-glow glow-2"></div>
+
+<div class="page-wrapper">
+
+    <header class="site-header">
+        <div class="logo-mark">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                <path d="M4 20L16 4L28 20H20L16 28L12 20H4Z" stroke="#00FFB2" stroke-width="1.5" fill="none"/>
+                <circle cx="16" cy="16" r="3" fill="#00FFB2"/>
+            </svg>
+            <span>EVPredict</span>
+        </div>
+        <a href="{{ url_for('index') }}" class="nav-pill">← New Prediction</a>
+    </header>
+
+    <section class="hero result-hero">
+        <div class="hero-eyebrow">
+            <span class="dot-success"></span>
+            Prediction Complete
+        </div>
+        <h1 class="hero-title">
+            Range <span class="title-accent">Results</span>
+        </h1>
+        <p class="hero-sub">
+            Based on the specifications you provided, here are the estimated driving ranges across all conditions.
+        </p>
+    </section>
+
+    <!-- Hero Range Card -->
+    <div class="result-hero-card">
+        {% set electric_range = output.get('Electric Range (km)', 0) %}
+        <div class="range-circle-wrap">
+            <svg class="range-ring" viewBox="0 0 200 200">
+                <circle cx="100" cy="100" r="88" stroke="#1a2a2a" stroke-width="8" fill="none"/>
+                <circle cx="100" cy="100" r="88"
+                    stroke="#00FFB2" stroke-width="8" fill="none"
+                    stroke-linecap="round"
+                    stroke-dasharray="{{ (electric_range / 700 * 553)|round|int }} 553"
+                    transform="rotate(-90 100 100)"
+                    class="range-arc"/>
+            </svg>
+            <div class="range-center">
+                <span class="range-value">{{ electric_range }}</span>
+                <span class="range-label">km</span>
+                <span class="range-desc">Electric Range</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Results Grid -->
+    <main class="result-container">
+
+        <div class="weather-block">
+            <h2 class="weather-title cold-title">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M12 2v20M4.93 4.93l14.14 14.14M2 12h20M4.93 19.07l14.14-14.14"/>
+                </svg>
+                Cold Weather Performance
+            </h2>
+            <div class="result-cards">
+                {% set cold_keys = ['City - Cold Weather (km)', 'Highway - Cold Weather (km)', 'Combined - Cold Weather (km)'] %}
+                {% set cold_icons = ['🏙️', '🛣️', '⚖️'] %}
+                {% set cold_labels = ['City Driving', 'Highway Driving', 'Combined'] %}
+                {% for i in range(3) %}
+                {% set key = cold_keys[i] %}
+                {% set val = output.get(key, 0) %}
+                <div class="result-card cold-card animate-in" style="animation-delay: {{ i * 0.1 }}s">
+                    <div class="card-icon">{{ cold_icons[i] }}</div>
+                    <div class="card-body">
+                        <div class="card-label">{{ cold_labels[i] }}</div>
+                        <div class="card-value">{{ val }}</div>
+                        <div class="card-unit">km</div>
+                    </div>
+                    <div class="card-bar">
+                        <div class="bar-fill cold-bar" style="width: {{ [((val / 700 * 100)|round|int), 100]|min }}%"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="weather-block">
+            <h2 class="weather-title mild-title">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <circle cx="12" cy="12" r="5"/>
+                    <line x1="12" y1="1" x2="12" y2="3"/>
+                    <line x1="12" y1="21" x2="12" y2="23"/>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                    <line x1="1" y1="12" x2="3" y2="12"/>
+                    <line x1="21" y1="12" x2="23" y2="12"/>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                </svg>
+                Mild Weather Performance
+            </h2>
+            <div class="result-cards">
+                {% set mild_keys = ['City - Mild Weather (km)', 'Highway - Mild Weather (km)', 'Combined - Mild Weather (km)'] %}
+                {% set mild_icons = ['🏙️', '🛣️', '⚖️'] %}
+                {% set mild_labels = ['City Driving', 'Highway Driving', 'Combined'] %}
+                {% for i in range(3) %}
+                {% set key = mild_keys[i] %}
+                {% set val = output.get(key, 0) %}
+                <div class="result-card mild-card animate-in" style="animation-delay: {{ (i + 3) * 0.1 }}s">
+                    <div class="card-icon">{{ mild_icons[i] }}</div>
+                    <div class="card-body">
+                        <div class="card-label">{{ mild_labels[i] }}</div>
+                        <div class="card-value">{{ val }}</div>
+                        <div class="card-unit">km</div>
+                    </div>
+                    <div class="card-bar">
+                        <div class="bar-fill mild-bar" style="width: {{ [((val / 900 * 100)|round|int), 100]|min }}%"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Summary Comparison Table -->
+        <div class="summary-table-wrap animate-in" style="animation-delay: 0.7s">
+            <h2 class="summary-title">Full Summary</h2>
+            <table class="summary-table">
+                <thead>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Value</th>
+                        <th>Condition</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="highlight-row">
+                        <td><strong>Electric Range</strong></td>
+                        <td><strong>{{ output.get('Electric Range (km)', '—') }} km</strong></td>
+                        <td>Overall</td>
+                    </tr>
+                    <tr>
+                        <td>City Driving</td>
+                        <td>{{ output.get('City - Cold Weather (km)', '—') }} km</td>
+                        <td>❄️ Cold</td>
+                    </tr>
+                    <tr>
+                        <td>Highway Driving</td>
+                        <td>{{ output.get('Highway - Cold Weather (km)', '—') }} km</td>
+                        <td>❄️ Cold</td>
+                    </tr>
+                    <tr>
+                        <td>Combined</td>
+                        <td>{{ output.get('Combined - Cold Weather (km)', '—') }} km</td>
+                        <td>❄️ Cold</td>
+                    </tr>
+                    <tr>
+                        <td>City Driving</td>
+                        <td>{{ output.get('City - Mild Weather (km)', '—') }} km</td>
+                        <td>☀️ Mild</td>
+                    </tr>
+                    <tr>
+                        <td>Highway Driving</td>
+                        <td>{{ output.get('Highway - Mild Weather (km)', '—') }} km</td>
+                        <td>☀️ Mild</td>
+                    </tr>
+                    <tr>
+                        <td>Combined</td>
+                        <td>{{ output.get('Combined - Mild Weather (km)', '—') }} km</td>
+                        <td>☀️ Mild</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="result-actions">
+            <a href="{{ url_for('index') }}" class="submit-btn">
+                <span class="btn-text">Predict Another Vehicle</span>
+                <span class="btn-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                </span>
+            </a>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <p>EVPredict &mdash; B.Tech Final Year Project &mdash; Machine Learning</p>
+    </footer>
+</div>
+
+<script>
+// Animate range arc
+window.addEventListener('DOMContentLoaded', () => {
+    const arc = document.querySelector('.range-arc');
+    if (arc) {
+        const final = arc.getAttribute('stroke-dasharray');
+        arc.setAttribute('stroke-dasharray', '0 553');
+        setTimeout(() => {
+            arc.style.transition = 'stroke-dasharray 1.5s cubic-bezier(0.4, 0, 0.2, 1)';
+            arc.setAttribute('stroke-dasharray', final);
+        }, 200);
+    }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EV Range Predictor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg:#080e0e;--bg-card:#0d1818;--bg-input:#0f1f1f;
+            --border:#1a2e2e;--accent:#00FFB2;--accent2:#00c8ff;
+            --text:#e2eeee;--muted:#6b8f8f;--dim:#2d4a4a;--danger:#f87171;
+        }
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+        html{scroll-behavior:smooth;}
+        body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;line-height:1.6;overflow-x:hidden;}
+
+        .bg-grid{position:fixed;inset:0;z-index:0;pointer-events:none;background-image:linear-gradient(rgba(0,255,178,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,178,0.03) 1px,transparent 1px);background-size:48px 48px;}
+        .bg-glow{position:fixed;z-index:0;border-radius:50%;filter:blur(120px);pointer-events:none;opacity:0.12;}
+        .glow-1{width:600px;height:600px;background:radial-gradient(circle,#00FFB2,transparent 70%);top:-200px;left:-200px;animation:driftA 18s ease-in-out infinite alternate;}
+        .glow-2{width:500px;height:500px;background:radial-gradient(circle,#00c8ff,transparent 70%);bottom:-200px;right:-100px;animation:driftB 22s ease-in-out infinite alternate;}
+        @keyframes driftA{to{transform:translate(80px,80px);}}
+        @keyframes driftB{to{transform:translate(-80px,-60px);}}
+
+        .page-wrapper{position:relative;z-index:1;max-width:980px;margin:0 auto;padding:0 24px 80px;}
+
+        /* Header */
+        .site-header{display:flex;align-items:center;justify-content:space-between;padding:24px 0;border-bottom:1px solid var(--border);margin-bottom:56px;}
+        .logo-mark{display:flex;align-items:center;gap:10px;font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem;}
+        .header-nav{display:flex;gap:8px;}
+        .nav-pill{padding:6px 16px;border:1px solid var(--border);border-radius:999px;font-size:0.85rem;color:var(--muted);text-decoration:none;transition:0.2s;cursor:pointer;}
+        .nav-pill:hover,.nav-pill.active{border-color:var(--accent);color:var(--accent);}
+
+        /* Hero */
+        .hero{margin-bottom:44px;}
+        .hero-eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:0.82rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:16px;}
+        .dot-pulse{width:8px;height:8px;background:var(--accent);border-radius:50%;animation:pulse 2s ease-in-out infinite;}
+        @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(0,255,178,0.4);}50%{box-shadow:0 0 0 8px rgba(0,255,178,0);}}
+        .hero-title{font-family:'Syne',sans-serif;font-size:clamp(2.2rem,5vw,3.5rem);font-weight:800;line-height:1.1;letter-spacing:-0.02em;margin-bottom:16px;color:#fff;}
+        .title-accent{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+        .hero-sub{font-size:1rem;color:var(--muted);max-width:540px;line-height:1.7;}
+
+        /* Error banner */
+        .error-banner{display:flex;gap:14px;align-items:flex-start;background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.3);border-radius:12px;padding:16px 20px;margin-bottom:32px;color:var(--danger);font-size:0.9rem;}
+        .error-banner ul{margin:6px 0 0 16px;}
+        .error-banner li{margin:4px 0;}
+        .close-btn{margin-left:auto;background:none;border:none;color:var(--danger);cursor:pointer;font-size:1rem;flex-shrink:0;}
+
+        /* ── SAMPLE VEHICLES BAR ── */
+        .sample-bar{
+            display:flex;align-items:center;gap:12px;
+            background:rgba(0,255,178,0.04);
+            border:1px solid rgba(0,255,178,0.15);
+            border-radius:16px;
+            padding:14px 20px;
+            margin-bottom:24px;
+            flex-wrap:wrap;
+        }
+        .sample-label{
+            font-size:0.78rem;font-weight:600;
+            color:var(--accent);letter-spacing:0.08em;
+            text-transform:uppercase;white-space:nowrap;
+            display:flex;align-items:center;gap:6px;
+        }
+        .sample-label svg{flex-shrink:0;}
+        .sample-divider{width:1px;height:28px;background:var(--border);flex-shrink:0;}
+        .sample-btns{display:flex;gap:8px;flex-wrap:wrap;}
+        .sample-btn{
+            display:inline-flex;align-items:center;gap:7px;
+            background:var(--bg-card);
+            border:1px solid var(--border);
+            border-radius:999px;
+            padding:7px 14px;
+            font-family:'DM Sans',sans-serif;
+            font-size:0.82rem;color:var(--text);
+            cursor:pointer;transition:0.2s;white-space:nowrap;
+        }
+        .sample-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(0,255,178,0.06);}
+        .sample-btn.active{border-color:var(--accent);background:rgba(0,255,178,0.1);color:var(--accent);}
+        .sample-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+        .dot-tesla{background:#e31937;}
+        .dot-leaf{background:#5cb85c;}
+        .dot-taycan{background:#c0a060;}
+        .dot-id4{background:#4a90d9;}
+
+        /* Fill animation on inputs */
+        @keyframes fillPop{0%{transform:scale(0.97);opacity:0.6;}100%{transform:scale(1);opacity:1;}}
+        .filled-anim{animation:fillPop 0.25s ease;}
+
+        /* Form container */
+        .form-container{background:var(--bg-card);border:1px solid var(--border);border-radius:20px;overflow:hidden;}
+        .form-section{padding:32px 36px;border-bottom:1px solid var(--border);}
+        .form-section:last-of-type{border-bottom:none;}
+        .section-label{display:flex;align-items:center;gap:12px;font-family:'Syne',sans-serif;font-size:0.95rem;font-weight:600;margin-bottom:24px;}
+        .section-number{font-size:0.72rem;color:var(--accent);letter-spacing:0.1em;border:1px solid rgba(0,255,178,0.3);padding:2px 8px;border-radius:4px;}
+        .input-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:20px;}
+        .input-group{display:flex;flex-direction:column;gap:6px;}
+        .input-group label{font-size:0.82rem;font-weight:500;color:var(--muted);}
+        .input-wrap{position:relative;display:flex;align-items:center;}
+        .input-wrap input,.input-wrap select{width:100%;background:var(--bg-input);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.95rem;padding:11px 52px 11px 14px;outline:none;appearance:none;transition:border-color 0.2s,box-shadow 0.2s;}
+        .input-wrap input::placeholder{color:var(--dim);}
+        .input-wrap input:focus,.input-wrap select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,255,178,0.12);}
+        .input-wrap input:hover,.input-wrap select:hover{border-color:#3a5a5a;}
+        .unit{position:absolute;right:14px;font-size:0.78rem;color:var(--dim);pointer-events:none;}
+        .select-wrap .select-arrow{position:absolute;right:14px;color:var(--dim);pointer-events:none;}
+        .select-wrap select{padding-right:36px;cursor:pointer;}
+        option{background:#0d1818;}
+        .hint{font-size:0.75rem;color:var(--dim);}
+
+        /* Form footer */
+        .form-footer{display:flex;align-items:center;gap:16px;padding:28px 36px;background:rgba(0,255,178,0.02);border-top:1px solid var(--border);}
+        .submit-btn{display:inline-flex;align-items:center;gap:10px;background:var(--accent);color:#000;font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700;padding:13px 28px;border-radius:999px;border:none;cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;}
+        .submit-btn:hover{transform:translateY(-1px);box-shadow:0 0 32px rgba(0,255,178,0.35);}
+        .submit-btn:active{transform:scale(0.98);}
+        .reset-btn{background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:0.88rem;padding:13px 20px;border:1px solid var(--border);border-radius:999px;cursor:pointer;transition:0.2s;}
+        .reset-btn:hover{border-color:var(--muted);color:var(--text);}
+        .btn-icon,.btn-loader{display:flex;align-items:center;gap:8px;}
+        @keyframes spin{to{transform:rotate(360deg);}}
+        .spin{animation:spin 0.8s linear infinite;}
+
+        /* About */
+        .about-section{margin-top:80px;padding-top:60px;border-top:1px solid var(--border);}
+        .about-title{font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:700;margin-bottom:32px;color:#fff;}
+        .about-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:20px;}
+        .about-card{background:var(--bg-card);border:1px solid var(--border);border-radius:20px;padding:24px;transition:border-color 0.2s;}
+        .about-card:hover{border-color:rgba(0,255,178,0.3);}
+        .card-num{font-family:'Syne',sans-serif;font-size:0.72rem;font-weight:700;color:var(--accent);letter-spacing:0.1em;margin-bottom:12px;}
+        .about-card h3{font-family:'Syne',sans-serif;font-size:0.95rem;font-weight:700;margin-bottom:8px;color:#fff;}
+        .about-card p{font-size:0.83rem;color:var(--muted);line-height:1.6;}
+
+        .site-footer{margin-top:60px;padding:24px 0;border-top:1px solid var(--border);text-align:center;font-size:0.82rem;color:var(--dim);}
+
+        @media(max-width:640px){
+            .page-wrapper{padding:0 16px 60px;}
+            .form-section{padding:24px 18px;}
+            .form-footer{padding:20px 18px;flex-wrap:wrap;}
+            .submit-btn,.reset-btn{width:100%;justify-content:center;}
+            .site-header{flex-direction:column;gap:12px;align-items:flex-start;}
+            .sample-bar{flex-direction:column;align-items:flex-start;}
+            .sample-divider{display:none;}
+        }
+    </style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="bg-glow glow-1"></div>
+<div class="bg-glow glow-2"></div>
+
+<div class="page-wrapper">
+
+    <!-- Header -->
+    <header class="site-header">
+        <div class="logo-mark">
+            <svg width="30" height="30" viewBox="0 0 32 32" fill="none">
+                <path d="M4 20L16 4L28 20H20L16 28L12 20H4Z" stroke="#00FFB2" stroke-width="1.5" fill="none"/>
+                <circle cx="16" cy="16" r="3" fill="#00FFB2"/>
+            </svg>
+            <span>EVPredict</span>
+        </div>
+        <nav class="header-nav">
+            <span class="nav-pill active">Predictor</span>
+            <a href="#about" class="nav-pill">About</a>
+        </nav>
+    </header>
+
+    <!-- Hero -->
+    <section class="hero">
+        <div class="hero-eyebrow">
+            <span class="dot-pulse"></span>
+            ML-Powered Range Estimation
+        </div>
+        <h1 class="hero-title">
+            Predict Your EV's<br>
+            <span class="title-accent">True Range</span>
+        </h1>
+        <p class="hero-sub">
+            Enter your vehicle specifications below. Our Linear Regression model,
+            trained on 194 real EVs, predicts range across seven driving conditions.
+        </p>
+    </section>
+
+    <!-- Error messages -->
+    {% if errors %}
+    <div class="error-banner" id="errorBanner">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <div>
+            <strong>Please fix the following errors:</strong>
+            <ul>{% for err in errors %}<li>{{ err }}</li>{% endfor %}</ul>
+        </div>
+        <button class="close-btn" onclick="this.parentElement.remove()">✕</button>
+    </div>
+    {% endif %}
+
+    <!-- ── SAMPLE VEHICLES BAR ── -->
+    <div class="sample-bar">
+        <div class="sample-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+            Quick Demo
+        </div>
+        <div class="sample-divider"></div>
+        <div class="sample-btns">
+            <button type="button" class="sample-btn" onclick="loadSample('tesla')" id="btn-tesla">
+                <span class="sample-dot dot-tesla"></span>
+                Tesla Model 3
+            </button>
+            <button type="button" class="sample-btn" onclick="loadSample('leaf')" id="btn-leaf">
+                <span class="sample-dot dot-leaf"></span>
+                Nissan Leaf
+            </button>
+            <button type="button" class="sample-btn" onclick="loadSample('taycan')" id="btn-taycan">
+                <span class="sample-dot dot-taycan"></span>
+                Porsche Taycan
+            </button>
+            <button type="button" class="sample-btn" onclick="loadSample('id4')" id="btn-id4">
+                <span class="sample-dot dot-id4"></span>
+                VW ID.4
+            </button>
+        </div>
+    </div>
+
+    <!-- Form -->
+    <main class="form-container">
+        <form id="predictForm" action="{{ url_for('predict') }}" method="post" novalidate>
+
+            <!-- Section 1: Performance -->
+            <div class="form-section">
+                <div class="section-label">
+                    <span class="section-number">01</span>
+                    <span>Performance</span>
+                </div>
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label for="accel">Acceleration 0–100 km/h</label>
+                        <div class="input-wrap">
+                            <input type="number" id="accel" name="Acceleration 0 - 100 km/h"
+                                placeholder="e.g. 7.5" step="0.1" min="2.8" max="19.1"
+                                value="{{ form_data.get('Acceleration 0 - 100 km/h', '') }}" required>
+                            <span class="unit">sec</span>
+                        </div>
+                        <span class="hint">Range: 2.8 – 19.1 s</span>
+                    </div>
+                    <div class="input-group">
+                        <label for="topspeed">Top Speed</label>
+                        <div class="input-wrap">
+                            <input type="number" id="topspeed" name="Top Speed"
+                                placeholder="e.g. 180" min="125" max="261"
+                                value="{{ form_data.get('Top Speed', '') }}" required>
+                            <span class="unit">km/h</span>
+                        </div>
+                        <span class="hint">Range: 125 – 261 km/h</span>
+                    </div>
+                    <div class="input-group">
+                        <label for="power">Total Power</label>
+                        <div class="input-wrap">
+                            <input type="number" id="power" name="Total Power"
+                                placeholder="e.g. 250" min="40" max="760"
+                                value="{{ form_data.get('Total Power', '') }}" required>
+                            <span class="unit">kW</span>
+                        </div>
+                        <span class="hint">Range: 40 – 760 kW</span>
+                    </div>
+                    <div class="input-group">
+                        <label for="torque">Total Torque</label>
+                        <div class="input-wrap">
+                            <input type="number" id="torque" name="Total Torque"
+                                placeholder="e.g. 450" min="100" max="1600"
+                                value="{{ form_data.get('Total Torque', '') }}" required>
+                            <span class="unit">Nm</span>
+                        </div>
+                        <span class="hint">Range: 100 – 1600 Nm</span>
+                    </div>
+                    <div class="input-group">
+                        <label for="drive">Drive Type</label>
+                        <div class="input-wrap select-wrap">
+                            <select id="drive" name="Drive" required>
+                                <option value="" disabled {% if not form_data.get('Drive') %}selected{% endif %}>Select drive type</option>
+                                <option value="0" {% if form_data.get('Drive') == '0' %}selected{% endif %}>Front Wheel Drive</option>
+                                <option value="2" {% if form_data.get('Drive') == '2' %}selected{% endif %}>Rear Wheel Drive</option>
+                                <option value="1" {% if form_data.get('Drive') == '1' %}selected{% endif %}>All Wheel Drive</option>
+                            </select>
+                            <span class="select-arrow">▾</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 2: Battery & Charging -->
+            <div class="form-section">
+                <div class="section-label">
+                    <span class="section-number">02</span>
+                    <span>Battery &amp; Charging</span>
+                </div>
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label for="battery">Battery Capacity</label>
+                        <div class="input-wrap">
+                            <input type="number" id="battery" name="Battery Capacity"
+                                placeholder="e.g. 82.0" step="0.1" min="16.7" max="200"
+                                value="{{ form_data.get('Battery Capacity', '') }}" required>
+                            <span class="unit">kWh</span>
+                        </div>
+                        <span class="hint">Range: 16.7 – 200 kWh</span>
+                    </div>
+                    <div class="input-group">
+                        <label for="chargepower">Charge Power (AC)</label>
+                        <div class="input-wrap">
+                            <input type="number" id="chargepower" name="Charge Power"
+                                placeholder="e.g. 11.0" step="0.1" min="2.3" max="22"
+                                value="{{ form_data.get('Charge Power', '') }}" required>
+                            <span class="unit">kW</span>
+                        </div>
+                        <span class="hint">Range: 2.3 – 22 kW</span>
+                    </div>
+                    <div class="input-group">
+                        <label for="chargespeed">Charge Speed</label>
+                        <div class="input-wrap">
+                            <input type="number" id="chargespeed" name="Charge Speed"
+                                placeholder="e.g. 49" min="10" max="110"
+                                value="{{ form_data.get('Charge Speed', '') }}" required>
+                            <span class="unit">km/h</span>
+                        </div>
+                        <span class="hint">Range: 10 – 110 km/h</span>
+                    </div>
+                    <div class="input-group">
+                        <label for="fastcharge">Fast Charge Speed (DC)</label>
+                        <div class="input-wrap">
+                            <input type="number" id="fastcharge" name="Fastcharge Speed"
+                                placeholder="e.g. 700" min="0" max="1170"
+                                value="{{ form_data.get('Fastcharge Speed', '') }}" required>
+                            <span class="unit">km/h</span>
+                        </div>
+                        <span class="hint">Range: 0 – 1170 km/h</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 3: Dimensions & Weight -->
+            <div class="form-section">
+                <div class="section-label">
+                    <span class="section-number">03</span>
+                    <span>Dimensions &amp; Weight</span>
+                </div>
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label for="gvwr">Gross Vehicle Weight (GVWR)</label>
+                        <div class="input-wrap">
+                            <input type="number" id="gvwr" name="Gross Vehicle Weight (GVWR)"
+                                placeholder="e.g. 2450" min="1300" max="3500"
+                                value="{{ form_data.get('Gross Vehicle Weight (GVWR)', '') }}" required>
+                            <span class="unit">kg</span>
+                        </div>
+                        <span class="hint">Range: 1300 – 3500 kg</span>
+                    </div>
+                    <div class="input-group">
+                        <label for="payload">Max Payload</label>
+                        <div class="input-wrap">
+                            <input type="number" id="payload" name="Max. Payload"
+                                placeholder="e.g. 570" min="200" max="1200"
+                                value="{{ form_data.get('Max. Payload', '') }}" required>
+                            <span class="unit">kg</span>
+                        </div>
+                        <span class="hint">Range: 200 – 1200 kg</span>
+                    </div>
+                    <div class="input-group">
+                        <label for="cargo">Cargo Volume</label>
+                        <div class="input-wrap">
+                            <input type="number" id="cargo" name="Cargo Volume"
+                                placeholder="e.g. 450" min="100" max="1500"
+                                value="{{ form_data.get('Cargo Volume', '') }}" required>
+                            <span class="unit">L</span>
+                        </div>
+                        <span class="hint">Range: 100 – 1500 L</span>
+                    </div>
+                    <div class="input-group">
+                        <label for="width">Width</label>
+                        <div class="input-wrap">
+                            <input type="number" id="width" name="Width"
+                                placeholder="e.g. 1890" min="1600" max="2200"
+                                value="{{ form_data.get('Width', '') }}" required>
+                            <span class="unit">mm</span>
+                        </div>
+                        <span class="hint">Range: 1600 – 2200 mm</span>
+                    </div>
+                    <div class="input-group">
+                        <label for="length">Length</label>
+                        <div class="input-wrap">
+                            <input type="number" id="length" name="Length"
+                                placeholder="e.g. 4600" min="3500" max="5500"
+                                value="{{ form_data.get('Length', '') }}" required>
+                            <span class="unit">mm</span>
+                        </div>
+                        <span class="hint">Range: 3500 – 5500 mm</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-footer">
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    <span class="btn-text">Predict Range</span>
+                    <span class="btn-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M5 12h14M12 5l7 7-7 7"/>
+                        </svg>
+                    </span>
+                    <span class="btn-loader" style="display:none;">
+                        <svg class="spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" opacity="0.25"/>
+                            <path d="M21 12a9 9 0 00-9-9"/>
+                        </svg>
+                        Predicting...
+                    </span>
+                </button>
+                <button type="reset" class="reset-btn" onclick="clearActive()">Clear All</button>
+            </div>
+        </form>
+    </main>
+
+    <!-- About -->
+    <section class="about-section" id="about">
+        <h2 class="about-title">How It Works</h2>
+        <div class="about-grid">
+            <div class="about-card">
+                <div class="card-num">01</div>
+                <h3>Data Collection</h3>
+                <p>Trained on 194 real-world EVs from the EV Database, covering 14 technical specifications per vehicle.</p>
+            </div>
+            <div class="about-card">
+                <div class="card-num">02</div>
+                <h3>Feature Engineering</h3>
+                <p>Correlation analysis selected the most impactful features. Drive type is label-encoded; all features are L2-normalized.</p>
+            </div>
+            <div class="about-card">
+                <div class="card-num">03</div>
+                <h3>Model Selection</h3>
+                <p>Linear Regression outperformed Decision Trees and Random Forests with the lowest MAE (~8.95 km) on the test set.</p>
+            </div>
+            <div class="about-card">
+                <div class="card-num">04</div>
+                <h3>Multi-Output Prediction</h3>
+                <p>The model predicts 7 range values simultaneously: electric range + city/highway/combined for cold and mild weather.</p>
+            </div>
+        </div>
+    </section>
+
+    <footer class="site-footer">
+        <p>EVPredict &mdash; B.Tech Final Year Project &mdash; Machine Learning</p>
+    </footer>
+</div>
+
+<script>
+// ── Sample vehicle data (real-world specs) ───────────────────────
+const SAMPLES = {
+    tesla: {
+        name: 'Tesla Model 3 (Long Range RWD)',
+        'Acceleration 0 - 100 km/h': 5.1,
+        'Top Speed': 225,
+        'Total Power': 239,
+        'Total Torque': 340,
+        'Drive': '2',           // RWD
+        'Battery Capacity': 82.0,
+        'Charge Power': 11.0,
+        'Charge Speed': 49,
+        'Fastcharge Speed': 940,
+        'Gross Vehicle Weight (GVWR)': 2232,
+        'Max. Payload': 388,
+        'Cargo Volume': 594,
+        'Width': 1933,
+        'Length': 4694
+    },
+    leaf: {
+        name: 'Nissan Leaf (40 kWh)',
+        'Acceleration 0 - 100 km/h': 7.9,
+        'Top Speed': 150,
+        'Total Power': 110,
+        'Total Torque': 320,
+        'Drive': '0',           // FWD
+        'Battery Capacity': 40.0,
+        'Charge Power': 6.6,
+        'Charge Speed': 30,
+        'Fastcharge Speed': 290,
+        'Gross Vehicle Weight (GVWR)': 1945,
+        'Max. Payload': 475,
+        'Cargo Volume': 435,
+        'Width': 1788,
+        'Length': 4490
+    },
+    taycan: {
+        name: 'Porsche Taycan 4S',
+        'Acceleration 0 - 100 km/h': 4.0,
+        'Top Speed': 250,
+        'Total Power': 390,
+        'Total Torque': 640,
+        'Drive': '1',           // AWD
+        'Battery Capacity': 93.4,
+        'Charge Power': 11.0,
+        'Charge Speed': 43,
+        'Fastcharge Speed': 1020,
+        'Gross Vehicle Weight (GVWR)': 2880,
+        'Max. Payload': 575,
+        'Cargo Volume': 366,
+        'Width': 1966,
+        'Length': 4963
+    },
+    id4: {
+        name: 'Volkswagen ID.4 Pro',
+        'Acceleration 0 - 100 km/h': 8.5,
+        'Top Speed': 160,
+        'Total Power': 150,
+        'Total Torque': 310,
+        'Drive': '2',           // RWD
+        'Battery Capacity': 82.0,
+        'Charge Power': 11.0,
+        'Charge Speed': 49,
+        'Fastcharge Speed': 570,
+        'Gross Vehicle Weight (GVWR)': 2430,
+        'Max. Payload': 560,
+        'Cargo Volume': 543,
+        'Width': 1852,
+        'Length': 4584
+    }
+};
+
+// Field id → form name mapping
+const FIELD_MAP = {
+    'accel':       'Acceleration 0 - 100 km/h',
+    'topspeed':    'Top Speed',
+    'power':       'Total Power',
+    'torque':      'Total Torque',
+    'drive':       'Drive',
+    'battery':     'Battery Capacity',
+    'chargepower': 'Charge Power',
+    'chargespeed': 'Charge Speed',
+    'fastcharge':  'Fastcharge Speed',
+    'gvwr':        'Gross Vehicle Weight (GVWR)',
+    'payload':     'Max. Payload',
+    'cargo':       'Cargo Volume',
+    'width':       'Width',
+    'length':      'Length'
+};
+
+let activeBtn = null;
+
+function loadSample(key) {
+    const data = SAMPLES[key];
+    if (!data) return;
+
+    // Highlight active button
+    document.querySelectorAll('.sample-btn').forEach(b => b.classList.remove('active'));
+    const btn = document.getElementById('btn-' + key);
+    if (btn) { btn.classList.add('active'); activeBtn = btn; }
+
+    // Fill each field with a small stagger delay for visual effect
+    let delay = 0;
+    for (const [fieldId, fieldName] of Object.entries(FIELD_MAP)) {
+        const el = document.getElementById(fieldId);
+        if (!el || !(fieldName in data)) continue;
+
+        setTimeout(() => {
+            el.value = data[fieldName];
+            el.style.borderColor = 'rgba(0,255,178,0.5)';
+            el.classList.remove('filled-anim');
+            void el.offsetWidth; // reflow to restart animation
+            el.classList.add('filled-anim');
+            setTimeout(() => { el.style.borderColor = ''; }, 800);
+        }, delay);
+        delay += 30;
+    }
+
+    // Show toast
+    showToast(data.name + ' loaded');
+}
+
+function clearActive() {
+    document.querySelectorAll('.sample-btn').forEach(b => b.classList.remove('active'));
+    activeBtn = null;
+}
+
+// ── Toast notification ───────────────────────────────────────────
+function showToast(msg) {
+    let t = document.getElementById('ev-toast');
+    if (!t) {
+        t = document.createElement('div');
+        t.id = 'ev-toast';
+        t.style.cssText = `
+            position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(20px);
+            background:#0d1818;border:1px solid rgba(0,255,178,0.4);color:#00FFB2;
+            font-family:'DM Sans',sans-serif;font-size:0.85rem;padding:10px 20px;
+            border-radius:999px;opacity:0;transition:opacity 0.3s,transform 0.3s;
+            z-index:9999;white-space:nowrap;
+            box-shadow:0 4px 24px rgba(0,0,0,0.4);
+        `;
+        document.body.appendChild(t);
+    }
+    t.textContent = '⚡ ' + msg;
+    t.style.opacity = '1';
+    t.style.transform = 'translateX(-50%) translateY(0)';
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => {
+        t.style.opacity = '0';
+        t.style.transform = 'translateX(-50%) translateY(10px)';
+    }, 2500);
+}
+
+// ── Form submit / validation ─────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('predictForm');
+    const submitBtn = document.getElementById('submitBtn');
+    if (!form || !submitBtn) return;
+
+    const btnText   = submitBtn.querySelector('.btn-text');
+    const btnIcon   = submitBtn.querySelector('.btn-icon');
+    const btnLoader = submitBtn.querySelector('.btn-loader');
+
+    form.addEventListener('submit', (e) => {
+        if (!form.checkValidity()) {
+            e.preventDefault();
+            const first = form.querySelector(':invalid');
+            if (first) { first.scrollIntoView({ behavior: 'smooth', block: 'center' }); first.focus(); }
+            return;
+        }
+        btnText.style.display = 'none';
+        btnIcon.style.display = 'none';
+        btnLoader.style.display = 'flex';
+        submitBtn.style.opacity = '0.7';
+        submitBtn.style.pointerEvents = 'none';
+    });
+
+    // Live range warning
+    form.querySelectorAll('input[type="number"]').forEach(input => {
+        const min = parseFloat(input.min);
+        const max = parseFloat(input.max);
+        const hint = input.closest('.input-group')?.querySelector('.hint');
+        input.addEventListener('input', () => {
+            const val = parseFloat(input.value);
+            const outOfRange = !isNaN(val) && (val < min || val > max);
+            input.style.borderColor = outOfRange ? 'rgba(251,191,36,0.7)' : '';
+            if (hint) hint.style.color = outOfRange ? '#fbbf24' : '';
+        });
+    });
+
+    // Scroll to error if any
+    const err = document.getElementById('errorBanner');
+    if (err) err.scrollIntoView({ behavior: 'smooth', block: 'center' });
+});
+</script>
+</body>
+</html>
