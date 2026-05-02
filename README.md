@@ -87,7 +87,7 @@ python app.py
 | Random Forest Regressor  | ~14.0    | Overfits small dataset        |
 | Decision Tree Regressor  | ~14.5    | Higher variance               |
 
-- **Dataset**: 194 EVs, 14 input features, 7 output targets
+- **Dataset**: 14 input features, 7 output targets
 - **Preprocessing**: L2 normalization (sklearn.preprocessing.normalize)
 - **Split**: 80% train / 20% test, random_state=42
 - **Multi-output**: Trained as a single multi-output regression model
