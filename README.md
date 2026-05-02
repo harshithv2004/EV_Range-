@@ -14,7 +14,7 @@ ev_project/
 ├── model_training.py       # Standalone model training script
 ├── requirements.txt        # Python dependencies
 │
-├── evdataset.csv           # Dataset: 194 EVs × 27 features
+├── evdataset.csv           # Dataset: 
 │
 ├── templates/
 │   ├── index.html          # Input form page
